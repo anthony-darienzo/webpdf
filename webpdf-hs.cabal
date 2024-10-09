@@ -23,7 +23,7 @@ name:               webpdf-hs
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis:           A yesod web-server to host a PDF via pdf.js.
+synopsis:           A  web-server to host a PDF via pdf.js.
 
 -- A longer description of the package.
 -- description:
@@ -69,7 +69,11 @@ executable webpdf-hs
 
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.17.2.1
-                      , yesod ^>=1.6.2.1
+                    , scotty >= 0.22
+                    , wai-middleware-static-embedded
+                    , bytestring
+                    , filepath
+                    , file-embed
 
     -- Directories containing source files.
     hs-source-dirs:   app

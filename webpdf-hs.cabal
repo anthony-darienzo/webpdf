@@ -62,7 +62,8 @@ executable webpdf-hs
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:
+        Viewer
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -70,8 +71,12 @@ executable webpdf-hs
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.17.2.1
                     , scotty >= 0.22
+                    , wai-middleware-static
                     , wai-middleware-static-embedded
                     , bytestring
+                    , text
+                    , blaze-html
+                    , shakespeare
                     , filepath
                     , file-embed
 

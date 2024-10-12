@@ -119,6 +119,7 @@ executable webpdf
                     , wai-websockets
                     -- For watching for file changes
                     , fsnotify
+                    , stm
 
     -- Directories containing source files.
     hs-source-dirs:   app

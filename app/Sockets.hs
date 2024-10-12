@@ -9,28 +9,26 @@ module Sockets
   ) where
 
 import Data.Text (Text)
-import Network.WebSockets (DataMessage (..))
 import Data.Aeson
-import Data.ByteString (ByteString)
 
 import Control.Monad (mzero)
 
-data SocketEvent = Initialize | Message | Reload
+data SocketEvent = Initialize | Message | ClientReload deriving Show
 
 instance FromJSON SocketEvent where
   parseJSON (String "initialize") = pure Initialize
   parseJSON (String "message")    = pure Message
-  parseJSON (String "reload")     = pure Reload
+  parseJSON (String "reload")     = pure ClientReload
   parseJSON _ = mzero
 
 instance ToJSON SocketEvent where
   toJSON Initialize = String "initialize"
   toJSON Message    = String "message"
-  toJSON Reload     = String "reload"
+  toJSON ClientReload     = String "reload"
 
 data SocketMessage = SocketMessage 
   { event :: SocketEvent
-  , message :: Text }
+  , message :: Text } deriving Show
 
 instance FromJSON SocketMessage where
   parseJSON = withObject "SocketMessage" $ \v -> SocketMessage

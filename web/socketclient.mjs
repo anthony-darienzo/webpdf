@@ -17,7 +17,10 @@ ws.addEventListener("message", (event) => {
   var msg = JSON.parse(event.data);
   if (msg.event === "reload") {
     console.log("Received reload notice from WebSocket.");
-    PDFViewerApplication.open(msg.message); // PDFViewerApplication is in /web/viewer.mjs
+    let new_url = msg.message + "?t=" + Date.now();
+    PDFViewerApplication.open({
+      url: new_url
+    }); // PDFViewerApplication is in /web/viewer.mjs
   } else {
     console.log("Received socket event.")
     console.log(msg)

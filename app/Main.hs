@@ -10,11 +10,13 @@ import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.WebSockets as WS
 import qualified Network.Wai.Handler.Warp as Warp
 import Control.Monad (forever)
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (threadDelay, forkIO)
 
--- For watching files
---import qualified System.FSNotify as FSNotify
+import qualified Control.Concurrent.STM as STM
+import qualified Control.Concurrent.STM.TChan as Ch
+import qualified System.FSNotify as FS
 
+import Data.Text (Text)
 import Text.Read (readMaybe)
 import System.Environment (getArgs)
 
@@ -23,6 +25,48 @@ import Sockets ( SocketEvent (..), SocketMessage (..), decode, encode )
 
 import Paths_webpdf (getDataDir)
 
+---
+--- Setup file-watching logic
+---
+data Event = Reload | Alert Text | OSEvent FS.Event deriving Show
+
+fileListenThread :: Ch.TChan Event -> FilePath -> IO ()
+fileListenThread events dir = do
+  putStrLn $ "fileListenThread observing " <> dir
+  -- FS.withManager forks the thread, so we loop forever to keep thread alive.
+  FS.withManager $ \mgr -> do
+    _ <- FS.watchDir mgr dir -- FS.watchDir returns an IO StopListening, which we don't need.
+      (const True) -- Accept all events
+      (\e -> do
+        STM.atomically $ do
+          STM.writeTChan events $ OSEvent e)
+    forever $ do
+      threadDelay 1000000
+
+processEvent :: Ch.TChan Event -> FilePath -> IO (Maybe SocketMessage)
+processEvent events pdf_path = do
+  maybe_event <- STM.atomically $ Ch.tryReadTChan events
+  case maybe_event of
+    Nothing -> return Nothing
+    Just e  -> do
+      putStrLn $ "processEvent thread: " <> show maybe_event
+      return $ getMessageFromEvent e
+  where
+    getMessageFromEvent :: Event -> Maybe SocketMessage
+    getMessageFromEvent Reload      = Just $ SocketMessage ClientReload mempty
+    getMessageFromEvent (Alert t)   = Just $ SocketMessage Message t
+    -- TODO : Add more detail to OSEvent message
+    getMessageFromEvent (OSEvent e) = 
+      if FS.eventPath e == pdf_path
+        then Just $ SocketMessage ClientReload "/currentPDF"
+        else Nothing
+---
+---
+---
+
+---
+--- Set up the web servers (http and websocket)
+---
 defaultPort :: Int
 defaultPort = 3000
 
@@ -44,8 +88,8 @@ mainScottyLoop pdf_path = do
     get "/" $ do
       redirect "/pdf?file=/currentPDF"
 
-mainSocketsLoop :: WS.ServerApp
-mainSocketsLoop pending = do
+mainSocketsLoop :: Ch.TChan Event -> FilePath -> WS.ServerApp
+mainSocketsLoop events pdf_path pending = do
   putStrLn "WebSocket connection request."
   initial_conn <- WS.acceptRequest pending
   welcome <- WS.receiveData initial_conn
@@ -54,14 +98,28 @@ mainSocketsLoop pending = do
     _ -> putStrLn "Connection did not send greeting!"
   WS.withPingPong WS.defaultPingPongOptions initial_conn
     (\ _ -> return () ) -- Nothing to do besides ping/pong
-  forever $ threadDelay 1000000
+  forever $ do
+    msgToClient <- processEvent events pdf_path
+    case msgToClient of
+      Nothing -> return ()
+      Just sm -> do 
+        putStrLn $ "Sending to client: " <> show msgToClient
+        WS.sendTextData initial_conn $ encode sm
+    threadDelay 1000000
 
 serverLoop :: Int -> FilePath -> IO ()
 serverLoop port pdf_path = do
   let settings = Warp.setPort port Warp.defaultSettings
   httpLoop    <- mainScottyLoop pdf_path
-  Warp.runSettings settings $ WaiWS.websocketsOr WS.defaultConnectionOptions mainSocketsLoop httpLoop
+  events <- STM.newTChanIO
+  let socketsLoop = mainSocketsLoop events pdf_path
+  _ <- forkIO $ fileListenThread events "/Users/adarienzo/Downloads" -- Dump ThreadID
+  Warp.runSettings settings $ WaiWS.websocketsOr WS.defaultConnectionOptions socketsLoop httpLoop
+---
+---
+---
 
+--- Finally, provide the main logic for executing webpdf.
 printHelpDialog :: IO ()
 printHelpDialog = putStr $ unlines
   [ "webpdf : Haskell PDF.js server."

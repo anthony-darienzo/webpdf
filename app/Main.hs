@@ -144,6 +144,6 @@ main = do
       case port of
         Nothing -> ioError $ userError "Error : Invalid port."
         Just p  -> do
-          putStrLn "--- webpdf: Starting web server on port " <> show p <> " for file " <> pdf_path
+          putStrLn $ "--- webpdf: Starting web server on port " <> show p <> " for file " <> pdf_path
           serverLoop p pdf_path
     _ -> printHelpDialog

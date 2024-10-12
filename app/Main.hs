@@ -129,7 +129,7 @@ printHelpDialog = putStr $ unlines
   , " a static server."
   , "  - Use -p to specify a port (default 3000)."
   , ""
-  , "Usage: wedpdf [-p PORT] SAMPLE.PDF"
+  , "Usage: webpdf [-p PORT] SAMPLE.PDF"
   ]
 
 main :: IO ()
@@ -143,5 +143,7 @@ main = do
       let port = readMaybe portarg
       case port of
         Nothing -> ioError $ userError "Error : Invalid port."
-        Just p  -> serverLoop p pdf_path
+        Just p  -> do
+          putStrLn "--- webpdf: Starting web server on port " <> show p <> " for file " <> pdf_path
+          serverLoop p pdf_path
     _ -> printHelpDialog

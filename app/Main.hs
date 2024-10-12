@@ -3,7 +3,6 @@ module Main where
 
 import Web.Scotty
 import qualified Network.Wai.Middleware.Static as NS
-import qualified Network.Wai.Middleware.StaticEmbedded as NSE
 
 -- For WebSockets
 import Network.Wai (Application)
@@ -19,21 +18,29 @@ import Control.Concurrent (threadDelay)
 import Text.Read (readMaybe)
 import System.Environment (getArgs)
 
-import Viewer ( grabEmbeddedFiles, viewer )
+import Viewer (viewer)
 import Sockets ( SocketEvent (..), SocketMessage (..), decode, encode )
+
+import Paths_webpdf (getDataDir)
 
 defaultPort :: Int
 defaultPort = 3000
-  
+
+grabStaticFiles :: IO NS.Policy
+grabStaticFiles = fmap NS.addBase getDataDir
+
 mainScottyLoop :: FilePath -> IO Application
 mainScottyLoop pdf_path = do
   putStrLn $ "Serving PDF file " <> pdf_path
+  static_file_policy <- grabStaticFiles
   scottyApp $ do
-    let pdf_policy = NS.only [("currentPDF", pdf_path)] -- "This actual means /currentPDF"
-    middleware (NS.unsafeStaticPolicy pdf_policy)
-    middleware (NSE.static grabEmbeddedFiles)
+    middleware (NS.unsafeStaticPolicy static_file_policy)
     get "/pdf" $ do
       html viewer
+    get "/currentPDF" $ do
+      setHeader "Content-Type" "application/pdf"
+      setHeader "Cache-Control" "no-cache"
+      file pdf_path
     get "/" $ do
       redirect "/pdf?file=/currentPDF"
 
@@ -53,17 +60,17 @@ serverLoop :: Int -> FilePath -> IO ()
 serverLoop port pdf_path = do
   let settings = Warp.setPort port Warp.defaultSettings
   httpLoop    <- mainScottyLoop pdf_path
-  Warp.runSettings settings $ WaiWS.websocketsOr WS.defaultConnectionOptions mainSocketsLoop httpLoop 
+  Warp.runSettings settings $ WaiWS.websocketsOr WS.defaultConnectionOptions mainSocketsLoop httpLoop
 
 printHelpDialog :: IO ()
 printHelpDialog = putStr $ unlines
-  [ "webpdf.hs : Haskell PDF.js server."
+  [ "webpdf : Haskell PDF.js server."
   , ""
   , "Uses scotty and pdf.js to render a PDF supllied on the command line into"
   , " a static server."
   , "  - Use -p to specify a port (default 3000)."
   , ""
-  , "Usage: wedpdf.hs [-p PORT] SAMPLE.PDF"
+  , "Usage: wedpdf [-p PORT] SAMPLE.PDF"
   ]
 
 main :: IO ()

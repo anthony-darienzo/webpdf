@@ -11,7 +11,7 @@ cabal-version:      3.0
 --   http://haskell.org/cabal/users-guide/
 --
 -- The name of the package.
-name:               webpdf-hs
+name:               webpdf
 
 -- The package version.
 -- See the Haskell package versioning policy (PVP) for standards
@@ -49,12 +49,44 @@ build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
--- extra-source-files:
+extra-source-files: app/viewer.hamlet
+    , pdfjs-dist/*.mjs
+    , pdfjs-dist/*.mjs.map
+    , web/*.css
+    , web/*.mjs
+    , web/*.mjs.map
+    , web/*.pdf
+    , web/cmaps/*.bcmap
+    , web/cmaps/LICENSE
+    , web/images/*.svg
+    , web/locale/**/*.ftl
+    , web/locale/locale.json
+    , web/standard_fonts/*.pfb
+    , web/standard_fonts/*.ttf
+    , web/standard_fonts/LICENSE_FOXIT
+    , web/standard_fonts/LICENSE_LIBERATION
+
+-- Extra files to be distributed with the executable
+data-files: pdfjs-dist/*.mjs
+    , pdfjs-dist/*.mjs.map
+    , web/*.css
+    , web/*.mjs
+    , web/*.mjs.map
+    , web/*.pdf
+    , web/cmaps/*.bcmap
+    , web/cmaps/LICENSE
+    , web/images/*.svg
+    , web/locale/**/*.ftl
+    , web/locale/locale.json
+    , web/standard_fonts/*.pfb
+    , web/standard_fonts/*.ttf
+    , web/standard_fonts/LICENSE_FOXIT
+    , web/standard_fonts/LICENSE_LIBERATION
 
 common warnings
     ghc-options: -Wall
 
-executable webpdf-hs
+executable webpdf
     -- Import common warning flags.
     import:           warnings
 
@@ -64,6 +96,9 @@ executable webpdf-hs
     -- Modules included in this executable, other than Main.
     other-modules: Viewer
         , Sockets
+        , Paths_webpdf
+
+    autogen-modules: Paths_webpdf
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -72,13 +107,10 @@ executable webpdf-hs
     build-depends:    base ^>=4.17.2.1
                     , scotty >= 0.22
                     , wai-middleware-static
-                    , wai-middleware-static-embedded
                     , bytestring
                     , text
                     , blaze-html
                     , shakespeare
-                    , filepath
-                    , file-embed
                     -- For websockets extras
                     , aeson
                     , websockets

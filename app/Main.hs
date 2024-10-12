@@ -15,6 +15,7 @@ import Control.Concurrent (threadDelay, forkIO)
 import qualified Control.Concurrent.STM as STM
 import qualified Control.Concurrent.STM.TChan as Ch
 import qualified System.FSNotify as FS
+import System.FilePath (takeDirectory)
 
 import Data.Text (Text)
 import Text.Read (readMaybe)
@@ -103,7 +104,7 @@ mainSocketsLoop events pdf_path pending = do
     case msgToClient of
       Nothing -> return ()
       Just sm -> do 
-        putStrLn $ "Sending to client: " <> show msgToClient
+        putStrLn $ "Sending to client: " <> show sm
         WS.sendTextData initial_conn $ encode sm
     threadDelay 1000000
 
@@ -113,7 +114,7 @@ serverLoop port pdf_path = do
   httpLoop    <- mainScottyLoop pdf_path
   events <- STM.newTChanIO
   let socketsLoop = mainSocketsLoop events pdf_path
-  _ <- forkIO $ fileListenThread events "/Users/adarienzo/Downloads" -- Dump ThreadID
+  _ <- forkIO $ fileListenThread events (takeDirectory pdf_path) -- Dump ThreadID
   Warp.runSettings settings $ WaiWS.websocketsOr WS.defaultConnectionOptions socketsLoop httpLoop
 ---
 ---

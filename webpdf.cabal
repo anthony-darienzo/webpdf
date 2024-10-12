@@ -118,6 +118,7 @@ executable webpdf
                     , wai
                     , wai-websockets
                     -- For watching for file changes
+                    , filepath
                     , fsnotify
                     , stm
 

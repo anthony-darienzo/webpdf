@@ -12,6 +12,7 @@ $doctype 5
         <link href="/web/viewer.css" rel="stylesheet">
         <script src="/web/viewer.mjs" type="module">
     <body tabindex="0">
+        <script src="/web/socketclient.mjs">
         <div #outerContainer>
             <div #sidebarContainer>
                 <div .toolbarHorizontalGroup #toolbarSidebar>

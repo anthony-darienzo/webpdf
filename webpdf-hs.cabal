@@ -62,8 +62,8 @@ executable webpdf-hs
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:
-        Viewer
+    other-modules: Viewer
+        , Sockets
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -79,6 +79,14 @@ executable webpdf-hs
                     , shakespeare
                     , filepath
                     , file-embed
+                    -- For websockets extras
+                    , aeson
+                    , websockets
+                    , warp
+                    , wai
+                    , wai-websockets
+                    -- For watching for file changes
+                    , fsnotify
 
     -- Directories containing source files.
     hs-source-dirs:   app

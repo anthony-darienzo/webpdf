@@ -132,18 +132,24 @@ printHelpDialog = putStr $ unlines
   , "Usage: webpdf [-p PORT] SAMPLE.PDF"
   ]
 
+printWelcomeDialog :: Int -> FilePath -> IO ()
+printWelcomeDialog port pdf_file =
+  putStrLn $ "--- webpdf: Starting web server on port " <> show port <> " for file " <> pdf_file
+
 main :: IO ()
 main = do
   args <- getArgs
   case args of
     []                      -> printHelpDialog
     ["-h"]                  -> printHelpDialog
-    [pdf_path]              -> serverLoop defaultPort pdf_path
+    [pdf_path]              -> do
+      printWelcomeDialog defaultPort pdf_path
+      serverLoop defaultPort pdf_path
     ["-p", portarg, pdf_path]  -> do
       let port = readMaybe portarg
       case port of
         Nothing -> ioError $ userError "Error : Invalid port."
         Just p  -> do
-          putStrLn $ "--- webpdf: Starting web server on port " <> show p <> " for file " <> pdf_path
+          printWelcomeDialog p pdf_path
           serverLoop p pdf_path
     _ -> printHelpDialog

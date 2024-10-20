@@ -15,6 +15,7 @@ import Control.Concurrent (threadDelay, forkIO)
 import qualified Control.Concurrent.STM as STM
 import qualified Control.Concurrent.STM.TChan as Ch
 import qualified System.FSNotify as FS
+import System.Directory (makeAbsolute)
 import System.FilePath (takeDirectory)
 
 import Data.Text (Text)
@@ -51,7 +52,9 @@ processEvent events pdf_path = do
     Nothing -> return Nothing
     Just e  -> do
       putStrLn $ "processEvent thread: " <> show maybe_event
-      return $ getMessageFromEvent e
+      let m = getMessageFromEvent e
+      putStrLn $ "processEvent thread: Passing message " <> show m
+      return m
   where
     getMessageFromEvent :: Event -> Maybe SocketMessage
     getMessageFromEvent Reload      = Just $ SocketMessage ClientReload mempty
@@ -96,7 +99,7 @@ mainSocketsLoop events pdf_path pending = do
   welcome <- WS.receiveData initial_conn
   case (decode welcome :: Maybe SocketMessage) of
     Just (SocketMessage Initialize greet) -> putStrLn $ "From client: " <> show greet
-    _ -> putStrLn "Connection did not send greeting!"
+    _nullOrInvalidResponse -> putStrLn "Connection did not send greeting!"
   WS.withPingPong WS.defaultPingPongOptions initial_conn
     (\ _ -> return () ) -- Nothing to do besides ping/pong
   forever $ do
@@ -143,13 +146,15 @@ main = do
     []                      -> printHelpDialog
     ["-h"]                  -> printHelpDialog
     [pdf_path]              -> do
-      printWelcomeDialog defaultPort pdf_path
-      serverLoop defaultPort pdf_path
+      abs_pdf_path <- makeAbsolute pdf_path
+      printWelcomeDialog defaultPort abs_pdf_path
+      serverLoop defaultPort abs_pdf_path
     ["-p", portarg, pdf_path]  -> do
       let port = readMaybe portarg
+      abs_pdf_path <- makeAbsolute pdf_path
       case port of
         Nothing -> ioError $ userError "Error : Invalid port."
         Just p  -> do
-          printWelcomeDialog p pdf_path
-          serverLoop p pdf_path
+          printWelcomeDialog p abs_pdf_path
+          serverLoop p abs_pdf_path
     _ -> printHelpDialog

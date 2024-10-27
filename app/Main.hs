@@ -30,7 +30,7 @@ import Paths_webpdf (getDataDir)
 ---
 --- Setup file-watching logic
 ---
-data Event = Reload | Alert Text | OSEvent FS.Event deriving Show
+data Event = Reload | Alert !Text | OSEvent !FS.Event deriving Show
 
 fileListenThread :: Ch.TChan Event -> FilePath -> IO ()
 fileListenThread events dir = do
@@ -60,10 +60,11 @@ processEvent events pdf_path = do
     getMessageFromEvent Reload      = Just $ SocketMessage ClientReload mempty
     getMessageFromEvent (Alert t)   = Just $ SocketMessage Message t
     -- TODO : Add more detail to OSEvent message
-    getMessageFromEvent (OSEvent e) = 
-      if FS.eventPath e == pdf_path
+    getMessageFromEvent (OSEvent ( FS.CloseWrite{FS.eventPath=path} )) = 
+      if path == pdf_path
         then Just $ SocketMessage ClientReload "/currentPDF"
         else Nothing
+    getMessageFromEvent (OSEvent _) = Nothing
 ---
 ---
 ---
@@ -157,4 +158,4 @@ main = do
         Just p  -> do
           printWelcomeDialog p abs_pdf_path
           serverLoop p abs_pdf_path
-    _ -> printHelpDialog
+    _noArgMatch -> printHelpDialog
